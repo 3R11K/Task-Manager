@@ -26,7 +26,8 @@ def create_task(user):
         "status": data.get('status'),
         "due_date": data.get('due_date'),
         "pr_link": data.get('pr_link', ''),
-        "story": data.get('storie', ''),
+        "story": data.get('story', ''),
+        "sprint": data.get('sprint', '')
     }
 
     if not task["name"] or not task["size"] or not task["assignee"] or not task["status"] or not task["due_date"] or not task["story"]:
@@ -81,7 +82,9 @@ def update_task(user, task_id):
         "pr_link": data.get('pr_link'),
         "story": data.get('story'),
     }
-
+    #Story, assignee, size, status, due_date são obrigatórios
+    if not task["name"] or not task["size"] or not task["assignee"] or not task["status"] or not task["due_date"] or not task["story"]:
+        return jsonify({"message": "Fields name, size, assignee, status and story are musted "}), 400
     # Chama a função para atualizar a tarefa e armazena a tupla (task_object, error_message)
     task_object, error = db.update_task(user, task_id, task)
 

@@ -1,11 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { ModalContainer, ModalContent, ModalHeader, ModalBody, ModalFooter, Overlay } from './styles.tsx';
-
+import { Loading } from '../Loading/Loading.tsx';
 const TaskModal = ({ task, onClose, onSave }) => {
   const [editedTask, setEditedTask] = useState(task);
+  const [isLoading, setIsLoading] = useState(true);
   const [isPrLinkEnabled, setIsPrLinkEnabled] = useState(
     task.status === 'Reviewing' || task.status === 'Done'
   );
+  const [groupUsers, setGroupUsers] = useState<{ id: number; name: string }[]>([]);
+
+  const getGroupUsers = async () => {
+    fetch('http://localhost:5000/group/members', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    }).then(response => {
+      if (response.ok) {
+        return response.json();
+      }else{
+        setIsLoading(false);
+        console.log('Failed to fetch group members');
+      }
+      }).then(data => {
+        setGroupUsers(data[0]);
+        setIsLoading(false);
+      });
+  }
+
+  useEffect(() => {
+    getGroupUsers();
+  }, []);
+
 
   useEffect(() => {
     setIsPrLinkEnabled(editedTask.status === 'Reviewing' || editedTask.status === 'Done');
@@ -33,6 +60,7 @@ const TaskModal = ({ task, onClose, onSave }) => {
   };
 
   const handleSave = () => {
+    console.log("that fucking task is beeing edited:",editedTask);
     onSave(editedTask);
   };
 
@@ -45,6 +73,7 @@ const TaskModal = ({ task, onClose, onSave }) => {
             <button onClick={onClose}>✖️</button>
           </ModalHeader>
           <ModalBody>
+            {/* Primeira linha */}
             <label>
               Name:
               <input
@@ -53,7 +82,6 @@ const TaskModal = ({ task, onClose, onSave }) => {
                 onChange={(e) => handleChange('data.name', e.target.value)}
               />
             </label>
-
             <label>
               Description:
               <textarea
@@ -61,7 +89,6 @@ const TaskModal = ({ task, onClose, onSave }) => {
                 onChange={(e) => handleChange('data.description', e.target.value)}
               />
             </label>
-
             <label>
               Status:
               <select
@@ -75,24 +102,39 @@ const TaskModal = ({ task, onClose, onSave }) => {
               </select>
             </label>
 
+            {/* Segunda linha */}
             <label>
               Assignee:
-              <input
-                type="text"
-                value={editedTask.data.assignee.name}
-                onChange={(e) => handleChange('data.assignee', { ...editedTask.data.assignee, name: e.target.value })}
-              />
+              <select
+              value={editedTask.data.assignee.id}
+              onChange={(e) => {
+                const selectedUser = groupUsers.find(user => user.id === parseInt(e.target.value));
+                handleChange('data.assignee', { id: parseInt(e.target.value), name: selectedUser ? selectedUser.name : '' });
+              }}
+              >
+              {groupUsers.map(user => (
+                <option key={user.id} value={user.id}>
+                {user.name}
+                </option>
+              ))}
+              </select>
             </label>
-
             <label>
               Reviewer:
-              <input
-                type="text"
-                value={editedTask.data.reviewer.name}
-                onChange={(e) => handleChange('data.reviewer', { ...editedTask.data.reviewer, name: e.target.value })}
-              />
+              <select
+              value={editedTask.data.reviewer.id}
+              onChange={(e) => {
+                const selectedUser = groupUsers.find(user => user.id === parseInt(e.target.value));
+                handleChange('data.reviewer', { id: parseInt(e.target.value), name: selectedUser ? selectedUser.name : '' });
+              }}
+              >
+              {groupUsers.map(user => (
+                <option key={user.id} value={user.id}>
+                {user.name}
+                </option>
+              ))}
+              </select>
             </label>
-
             <label>
               Size:
               <select
@@ -105,14 +147,14 @@ const TaskModal = ({ task, onClose, onSave }) => {
               </select>
             </label>
 
+            {/* Terceira linha */}
             <label>
               Story:
-              <textarea
+              <input
                 value={editedTask.data.story}
                 onChange={(e) => handleChange('data.story', e.target.value)}
               />
             </label>
-
             <label>
               Due Date:
               <input
@@ -121,7 +163,24 @@ const TaskModal = ({ task, onClose, onSave }) => {
                 onChange={(e) => handleChange('data.due_date', e.target.value)}
               />
             </label>
+             {/* ------------------------- */}
+            {/* Quarta linha */}
+            <label>
+              DoR:
+              <textarea className='definition'
+                value={editedTask.data.dor}
+                onChange={(e) => handleChange('data.dor', e.target.value)}
+              />
+            </label>
+            <label>
+              DoD:
+              <textarea className='definition'
+                value={editedTask.data.dod}
+                onChange={(e) => handleChange('data.dod', e.target.value)}
+              />
+            </label>
 
+            {/* Quinta linha */}
             {isPrLinkEnabled && (
               <label>
                 PR Link:
@@ -139,6 +198,7 @@ const TaskModal = ({ task, onClose, onSave }) => {
           </ModalFooter>
         </ModalContent>
       </ModalContainer>
+      {isLoading && <Loading />}
     </Overlay>
   );
 };

@@ -16,3 +16,12 @@ def get_members(user):
     """
     members = db.get_group_members(user)
     return jsonify(members), 200
+
+@group_routes.route('/get-groups', methods=['GET'])
+@auth.token_required
+def get_groups(user):
+    """
+    Rota para obter os grupos do usuário autenticado.
+    """
+    groups = db.get_groups()
+    return jsonify(groups), 200

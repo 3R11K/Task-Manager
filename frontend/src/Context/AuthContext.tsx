@@ -7,9 +7,10 @@ interface AuthContextProps {
     email: string;
     group: string;
     isAuthenticated: boolean;
-    loading: boolean; // Novo estado de loading
+    loading: boolean;
     setAuthToken: (logged: boolean) => void;
     logout: () => void;
+    setNewGroup: (group: string) => void; // Add setGroup to the context interface
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -29,9 +30,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [user_id, setUser_id] = useState<string>('');
     const [name, setName] = useState<string>('');
     const [email, setEmail] = useState<string>('');
-    const [group, setGroup] = useState<string>('');
+    const [group, setGroupState] = useState<string>('');
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-    const [loading, setLoading] = useState<boolean>(true); // Estado de carregamento
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         const token = Cookies.get('access_token');
@@ -39,24 +40,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (token) {
             try {
-                //{"user_id": 2,"name": "1","email": "teste1@gmail.com","group": "grupo teste","exp": 1732737525}
                 const decoded = decodeJwt(token);
                 console.log('Decoded:', decoded);
                 setName(decoded.name);
-                setGroup(decoded.group);
+                setGroupState(decoded.group);
                 setEmail(decoded.email);
                 setUser_id(decoded.user_id);
                 setIsAuthenticated(true);
             } catch (error) {
                 console.error('Invalid JWT:', error);
                 Cookies.remove('access_token');
-                setIsAuthenticated(false); // Caso o token seja inválido
+                setIsAuthenticated(false);
             }
         } else {
-            setIsAuthenticated(false); // Caso o token não exista
+            setIsAuthenticated(false);
         }
 
-        setLoading(false); // Define como false após verificar o token
+        setLoading(false);
     }, []);
 
     const setAuthToken = (logged) => {
@@ -70,14 +70,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const logout = () => {
         Cookies.remove('access_token');
         setName('');
-        setGroup('');
+        setGroupState('');
         setEmail('');
         setUser_id('');
         setIsAuthenticated(false);
     };
 
+    const setNewGroup = (group: string) => {
+        setGroupState(group);
+    };
+
     return (
-        <AuthContext.Provider value={{ user_id,name, email, group, isAuthenticated, loading, setAuthToken, logout }}>
+        <AuthContext.Provider value={{ user_id, name, email, group, isAuthenticated, loading, setAuthToken, logout, setNewGroup }}>
             {children}
         </AuthContext.Provider>
     );

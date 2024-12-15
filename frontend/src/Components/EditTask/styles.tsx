@@ -44,15 +44,14 @@ export const ModalHeader = styled.div`
 `;
 
 export const ModalBody = styled.div`
-  margin: 20px 0;
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Layout em duas colunas */
+  grid-template-columns: repeat(3, 1fr); /* Três colunas de tamanho igual */
   gap: 20px;
+  margin: 20px 0;
 
   label {
     display: flex;
     flex-direction: column;
-    margin-bottom: 10px;
 
     input,
     textarea,
@@ -65,10 +64,21 @@ export const ModalBody = styled.div`
     }
   }
 
-  /* Ajuste para textarea ocupar toda a largura da linha */
-  textarea {
-    grid-column: span 2;
-    resize: vertical;
+  /* Especificação de layout para cada campo */
+  label:nth-child(1) { grid-column: span 1; } /* Name */
+  label:nth-child(2) { grid-column: span 1; } /* Description */
+  label:nth-child(3) { grid-column: span 1; } /* To Do */
+  label:nth-child(4) { grid-column: span 1; } /* Assignee */
+  label:nth-child(5) { grid-column: span 1; } /* Reviewer */
+  label:nth-child(6) { grid-column: span 1; } /* Size */
+  label:nth-child(7) { grid-column: span 2; } /* Story */
+  label:nth-child(8) { grid-column: span 1; } /* Due Date */
+  label:nth-child(9) { grid-column: span 1; } /* DoR */
+  label:nth-child(10) { grid-column: span 1; } /* DoD */
+  label:nth-child(11) { grid-column: span 3; } /* PR Link */
+
+  .definition {
+    width: 100%;
   }
 `;
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Filters, Table, TableHeader, TableRow, TableCell } from './styles.tsx';
+import { format } from 'date-fns';
+import { Container, Filters, Table, TableHeader, TableRow, TableCell, StoryContainer, DetailBox, AddTaskButton,ContainerFilters } from './styles.tsx';
 import TaskEditModal from '../EditTask/EditTaskModal.tsx';
+import AddTaskModal from '../AddTaskModal/AddTaskModal.tsx';
 
 interface Integrant {
   id: number;
@@ -19,6 +21,22 @@ const TaskList = ({ tasks, onSuccess, onError, onTasksUpdate, onLoading }) => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [saveVisible, setSaveVisible] = useState(false);
   const [tasksStatusUpdate, setTasksStatusUpdate] = useState<{ id: number; status: string }[]>([]);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleRow = (taskId: number) => {
+    setExpandedRows((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(taskId)) {
+        updated.delete(taskId);
+      } else {
+        updated.add(taskId);
+      }
+      return updated;
+    });
+  };
+
 
   const getFilters = () => {
     const sizes = new Set<string>();
@@ -54,11 +72,13 @@ const TaskList = ({ tasks, onSuccess, onError, onTasksUpdate, onLoading }) => {
     });
   };
 
-  const handleSaveTask = async (updatedTask) => {
-    const apiUrl = `http://127.0.0.1:5000/tasks/update/${updatedTask.id}`;
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return format(new Date(dateString), 'dd/MM/yyyy');
+  };
 
-    console.log('Task to update:', updatedTask);
-    console.log('API URL:', apiUrl);
+  const handleSaveTask = async (updatedTask) => {
+    onLoading(true);
   
     // Estrutura para enviar ao backend
     const payload = {
@@ -67,17 +87,17 @@ const TaskList = ({ tasks, onSuccess, onError, onTasksUpdate, onLoading }) => {
       dor: updatedTask.data.dor,
       dod: updatedTask.data.dod,
       size: updatedTask.data.size,
-      assignee: updatedTask.data.assignee.id,
-      reviewer: updatedTask.data.reviewer.id,
+      assignee: updatedTask.data.assignee,
+      reviewer: updatedTask.data.reviewer,
       status: updatedTask.status,
       due_date: updatedTask.data.due_date,
       pr_link: updatedTask.data.pr_link,
-      storiy: updatedTask.data.story,
+      story: updatedTask.data.story,
     };
   
     try {
       // Chamada à API com método PUT
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`http://localhost:5000/tasks/update/${updatedTask.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -90,6 +110,7 @@ const TaskList = ({ tasks, onSuccess, onError, onTasksUpdate, onLoading }) => {
       const result = await response.json();
   
       if (response.ok) {
+        onLoading(false);
         // Atualize diretamente a tarefa na lista
         const index = tasks.findIndex((task) => task.id === updatedTask.id);
         if (index !== -1) {
@@ -104,13 +125,16 @@ const TaskList = ({ tasks, onSuccess, onError, onTasksUpdate, onLoading }) => {
         setSelectedTask(null);
         onSuccess('Task updated successfully');
       } else {
+        onLoading(false);
         // Exibe erro retornado pelo backend
         onError(result.message || 'Failed to update task');
       }
     } catch (error) {
+      onLoading(false);
       console.error('Error updating task:', error);
       onError('An unexpected error occurred while updating the task');
     }
+    onLoading(false); 
   };
 
   const handleStatusChangeTasks = () =>{
@@ -173,6 +197,7 @@ const TaskList = ({ tasks, onSuccess, onError, onTasksUpdate, onLoading }) => {
     <Container>
       {/* Filtros */}
       <Filters>
+        <ContainerFilters>  
         <label>
           Status:
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
@@ -220,47 +245,102 @@ const TaskList = ({ tasks, onSuccess, onError, onTasksUpdate, onLoading }) => {
             ))}
           </select>
         </label>
+
+        <AddTaskButton
+        onClick={() => setIsAddModalVisible(true)}>+</AddTaskButton>
+        </ContainerFilters>
       </Filters>
 
-      {/* Tabela */}
-      <Table>
-        <TableHeader>
-          <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Assignee</th>
-            <th>Reviewer</th>
-            <th>Size</th>
-            <th>Status</th>
-            <th>Edit</th>
-          </tr>
-        </TableHeader>
-        <tbody>
-          {filteredTasks.map((task, index) => (
-            <TableRow key={index} id={task.id}>
-              <TableCell>{task.name}</TableCell>
-              <TableCell>{task.data.description}</TableCell>
-              <TableCell>{task.data.assignee?.name}</TableCell>
-              <TableCell>{task.data.reviewer?.name}</TableCell>
-              <TableCell>{task.data.size}</TableCell>
-              <TableCell>
-                <select value={task.status} onChange={(e) => handleStatusChange(task, e.target.value)}>
-                  <option value={task.status}>{task.status}</option>
-                  <option value="To Do">To Do</option>
-                  <option value="Doing">Doing</option>
-                  <option value="Reviewing">Reviewing</option>
-                  <option value="Done">Done</option>
-                </select>
-              </TableCell>
-              <TableCell>
-                <button onClick={() => setSelectedTask(task)}>✏️</button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </tbody>
-      </Table>
-
-      {/* Modal */}
+      {Array.from(new Set(filteredTasks.map(task => task.data.story)) as Set<string>)
+        .sort()
+        .map((story: string) => (
+        <StoryContainer key={story}>
+          <h3>{story}</h3>
+          <Table>
+            <TableHeader>
+              <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Assignee</th>
+                <th>Reviewer</th>
+                <th>Size</th>
+                <th>Status</th>
+                <th>Due Date</th>
+                <th>Edit</th>
+              </tr>
+            </TableHeader>
+            <tbody>
+              {filteredTasks.filter(task => task.data.story === story).map((task, index) => (
+                <React.Fragment key={index}>
+                  <TableRow id={task.id}>
+                    <TableCell>
+                      <button onClick={() => toggleRow(task.id)}>
+                        {expandedRows.has(task.id) ? '▲' : '▼'}
+                      </button>
+                    </TableCell>
+                    <TableCell>{task.name}</TableCell>
+                    <TableCell>{task.data.assignee?.name}</TableCell>
+                    <TableCell>{task.data.reviewer?.name}</TableCell>
+                    <TableCell>{task.data.size}</TableCell>
+                    <TableCell>
+                      <select value={task.status} onChange={(e) => handleStatusChange(task, e.target.value)}>
+                        <option value={task.status}>{task.status}</option>
+                        <option value="To Do">To Do</option>
+                        <option value="Doing">Doing</option>
+                        <option value="Reviewing">Reviewing</option>
+                        <option value="Done">Done</option>
+                      </select>
+                    </TableCell>
+                    <TableCell>{formatDate(task.data.due_date)}</TableCell>
+                    <TableCell>
+                      <button onClick={() => setSelectedTask(task)}>✏️</button>
+                    </TableCell>
+                  </TableRow>
+                  {expandedRows.has(task.id) && (
+                    <TableRow>
+                      <TableCell colSpan={8}>
+                        <div  style={{
+                            display: 'flex',
+                            gap: '20px', /* Espaçamento maior entre as caixas */
+                            justifyContent: 'center', /* Centraliza horizontalmente o grupo de caixas */
+                            alignItems: 'center', /* Garante alinhamento vertical das caixas */
+                            flexWrap: 'wrap', /* Permite que as caixas sejam quebradas em linha quando necessário */
+                            padding: '10px', /* Adiciona espaçamento interno no contêiner */
+                          }}>
+                            <DetailBox>
+                              <strong>Description</strong>
+                              <div>{task.data.description}</div>
+                            </DetailBox>
+                          <DetailBox>
+                            <strong>DOR:</strong>
+                            <span>{task.data.dor}</span>
+                          </DetailBox>
+                          <DetailBox>
+                            <strong>DOD:</strong>
+                            <span>{task.data.dod}</span>
+                          </DetailBox>
+                          <DetailBox>
+                            <strong>Due Date:</strong>
+                            <span>{formatDate(task.data.due_date)}</span>
+                          </DetailBox>
+                          {task.data.pr_link && (
+                            <DetailBox>
+                              <strong>PR Link:</strong>
+                              <a href={task.data.pr_link} target="_blank" rel="noopener noreferrer">
+                                {task.data.pr_link}
+                              </a>
+                            </DetailBox>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </Table>
+        </StoryContainer>
+      ))}
       {selectedTask && (
         <TaskEditModal
           task={selectedTask}
@@ -268,13 +348,23 @@ const TaskList = ({ tasks, onSuccess, onError, onTasksUpdate, onLoading }) => {
           onSave={handleSaveTask}
         />
       )}
+      {saveVisible && (
+        <button onClick={() => handleStatusChangeTasks()}>Save</button>
+      )}
       {
-        saveVisible && (
-          <button onClick={() => handleStatusChangeTasks()}>Save</button>
-        )
+        isAddModalVisible && (
+          <AddTaskModal
+            isOpen={isAddModalVisible}
+            onClose={() => setIsAddModalVisible(false)}
+            onAdd={(task) => {
+              onTasksUpdate([...tasks, task]);
+              setIsAddModalVisible(false);
+            }}
+            onSuccess={onSuccess}
+            onError={onError}
+            onLoading={onLoading}
+          />)
       }
-      {/* Toast que deve ter o css padrão dele e ignorar o global*/}
-
     </Container>
   );
 };

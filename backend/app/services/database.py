@@ -6,6 +6,7 @@ from app.models.task_model import Task
 from app.models.config_model import Config
 from app import db
 import json
+from datetime import datetime
 
 class Database:
     def __init__(self):
@@ -200,7 +201,7 @@ class Database:
             return None, "User has no group"
 
         # Certifique-se de usar 'group_id' conforme definido no modelo Config
-        config = Config.query.filter_by(group_id=group_id).first()
+        config = Config.query.filter_by(group_id=group_id)
 
         return config
 
@@ -218,17 +219,21 @@ class Database:
 
         # Atualiza a configuração do grupo
         config = Config.query.filter_by(group_id=group_id).first()
-        if not config:
-            #insert new config
-            config = Config(group_id=group_id, config=data)
-            db.session.add(config)
-            db.session.commit()
-            return config
-
+        
+        sprints = config.config["sprints"]
+        
+        sprints.append(config["curr_sprint"]) 
+        sprints.append(data["curr_sprint"])
+        
+        data["sprints"] = sprints
+        
         config.update(data)
+        
         db.session.commit()
-
-        return config
+        
+        return config, None
+    
+        
     
     def get_group_tasks(self, user):
         """
@@ -297,4 +302,72 @@ class Database:
 
         return tasks, None
     
+    def get_tasks_sprint(self, user, sprint):
+        """
+        Retorna todas as tarefas associadas ao grupo do usuário e a sprint informada.
+
+        :param user: Instância do usuário (objeto User)
+        :param sprint: Nome da sprint
+        :return: lista de tarefas ou mensagem de erro
+        """
+        group_id = self.get_user_group_id(user)
+        if not group_id:
+            return [], "User has no group"
+
+        tasks = Task.query.filter_by(id_group=group_id, sprint=sprint).all()
+
+        return tasks, None
+    
+    def get_groups(self):
+        #retornar apenas nome e id
+        groups = Group.query.all()
+        return [{"id": group.id, "name": group.name} for group in groups]
+    
+    def create_conf(self, user, data):
+        group_id = self.get_user_group_id(user)
+        if not group_id:
+            return None, "User has no group"
+        
+        new_conf = Config(group_id=group_id, config=data)
+        db.session.add(new_conf)
+        db.session.commit()
+        
+        return new_conf, None
+
+
+#{
+#     "config": {
+#         "sizes": {"G": 120, "M": 60, "P": 30, "PP": 15},
+#         "colors": {"G": "#ff000d", "M": "#c300ff", "P": "#00bbff", "PP": "#00ff55"},
+#         "start_date": "12/12/2024",
+#         "end_date": "20/12/2024"
+#     },
+#     "sprint_num": 1,
+#     "sprint_name": "Sprint 1",
+#     "sprint_description": "Descrição da primeira sprint.",
+#     "group_id": 1
+# }
+    
+    def add_sprint(self, user, sprint):
+        try:
+            # Validar formato de datas
+            for date_field in ["start_date", "end_date"]:
+                try:
+                    sprint["config"][date_field] = datetime.strptime(sprint["config"][date_field], "%Y-%m-%d")
+                except ValueError:
+                    raise ValueError(f"Invalid date format for {date_field}: {sprint["config"][date_field]}")
+
+            sprint["group_id"] = self.get_user_group_id(user)
+            print(sprint)
+            new_sprint = Config(**sprint)
+            db.session.add(new_sprint)
+            db.session.commit()
+
+            print("Sprint adicionada com sucesso ao banco de dados.")
+            return new_sprint.serialize(), None
+
+        except Exception as e:
+            print(f"Erro ao adicionar sprint: {e}")
+            return None, str(e)
+        
         

@@ -5,6 +5,7 @@ import TaskList from "../../Components/TaskTable/TaskTable.tsx";
 import {Loading} from "../../Components/Loading/Loading.tsx";
 import { ToastContainer, toast } from "react-toastify"; // Importe o toast
 import "react-toastify/dist/ReactToastify.css"; // Importe o estilo padrão do react-toastify
+import { set } from "date-fns";
 
 interface Task {
     data: object;
@@ -16,7 +17,8 @@ interface Task {
 const Home: React.FC = () => {
   const { name, group } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [answared, setAnswared] = useState(false);
 
   const handleLoading = (isLoading) => {
     setLoading(isLoading);
@@ -32,17 +34,23 @@ const Home: React.FC = () => {
         credentials: "include",
       });
       if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.statusText}`);
+        setAnswared(true);
+        setLoading(false);
+        toast.error("Erro ao buscar tasks.");
       }
+      setLoading(false);
       const data = await response.json();
       console.log("Tasks recebidas:", data);
-
+      setAnswared(true);
       // Verificar se o resultado é um array
       if (!Array.isArray(data.tasks)) {
         throw new Error("A resposta da API não é um array.");
       }
       // Atualizar o estado com as tasks recebidas
       const formattedTasks: Task[] = []
+      if (data.tasks.length === 0) {
+        return;
+      }
 
       for (let i = 0; i < data.tasks.length; i++) {
         formattedTasks.push({
@@ -84,11 +92,18 @@ const Home: React.FC = () => {
           onTasksUpdate={(updatedTasks => setTasks(updatedTasks))}
           onLoading={handleLoading}/>
         {
-            tasks.length === 0 && <Loading />
+            tasks.length === 0 && (
+                <>
+                {answared && tasks.length === 0 &&
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+                  <h1>Não há tarefas cadastradas.</h1>
+                </div>}
+                </>
+            )
         }
         <ToastContainer />
         {
-            loading && <Loading />
+            loading  && <Loading />
         }
     </div>
     

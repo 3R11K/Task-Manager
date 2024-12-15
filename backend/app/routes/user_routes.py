@@ -15,14 +15,15 @@ def define_group(user):
     """
     # Obtém os dados do grupo do corpo da requisição
     data = request.get_json()
-    group_name = data.get('group_name')
-    group_password = data.get('group_password')
+    
+    name = data.get('name')
+    password = data.get('password')
 
-    if not group_name or not group_password:
+    if not name or not password:
         return jsonify({"message": "Group name and password are required."}), 400
 
     # Chama o método da classe Database para definir o grupo
-    group, error_message = db.define_group(user, group_name, group_password)
+    group, error_message = db.define_group(user, name, password)
     if error_message:
         return jsonify({"message": error_message}), 403
 
@@ -41,19 +42,19 @@ def create_group(user):
 
     # Obtém os dados do grupo do corpo da requisição
     data = request.get_json()
-    group_name = data.get('group_name')
-    group_password = data.get('group_password')
+    name = data.get('name')
+    password = data.get('password')
 
-    if not group_name or not group_password:
+    if not name or not password:
         return jsonify({"message": "Group name and password are required."}), 400
 
     # Verifica se o grupo já existe
-    existing_group = auth.db_service.get_group_by_name(group_name)
+    existing_group = auth.db_service.get_group_by_name(name)
     if existing_group:
         return jsonify({"message": "Group with this name already exists."}), 400
 
     # Cria o novo grupo e associa ao usuário
-    new_group = auth.db_service.create_group_for_user(user.id, group_name, group_password)
+    new_group = auth.db_service.create_group_for_user(user.id, name, password)
 
     return jsonify({
         "message": "Group created and you have been added to it.",

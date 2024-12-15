@@ -20,6 +20,7 @@ class Task(db.Model):
     due_date = db.Column(DateTime(timezone=True))
     pr_link = db.Column(String)
     story = db.Column(String)
+    sprint = db.Column(String)
     
     # Chave estrangeira para a tabela group
     id_group = db.Column(BigInteger, ForeignKey('group.id', ondelete='CASCADE'))
@@ -43,7 +44,8 @@ class Task(db.Model):
             "status": self.status,
             "due_date": self.due_date,
             "pr_link": self.pr_link,
-            "story": self.story
+            "story": self.story,
+            "sprint": self.group.sprint 
         }
 
     def update(self, data):
@@ -61,6 +63,8 @@ class Task(db.Model):
         self.status = data.get('status', self.status)
         self.due_date = data.get('due_date', self.due_date)
         self.pr_link = data.get('pr_link', self.pr_link)
+        self.story = data.get('story', self.story)
+        self.sprint = data.get('sprint', self.group.sprint)
         
         
     def __repr__(self):

@@ -1,31 +1,30 @@
 import React, { useState } from "react";
-import { LoginContainer, PageContainer } from "./styles";
+import { RegContainer, PageContainer } from "./style.tsx";
 import { useAuth } from "../../Context/AuthContext.tsx"; // Certifique-se de ajustar o caminho conforme necessário
 import { Loading } from "../../Components/Loading/Loading.tsx";
 
-const Login: React.FC = () => {
+const Register: React.FC = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const { setAuthToken, group } = useAuth(); // Obtenha o método setAuthToken do contexto
+    const [name, setName] = useState("");
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setLoading(true);
         try {
-            const response = await fetch("http://localhost:5000/auth/login", {
+            const response = await fetch("http://localhost:5000/auth/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, name }),
                 credentials: "include", // Inclui cookies na requisição
             });            
     
             if (response.ok) {
-                console.log("Login successful!");
-                setAuthToken(true); // Atualiza o estado de autenticação
-                window.location.href = "/"; // Redireciona para a página inicial
+                console.log("Registered successful!");
+                window.location.href = "/login"; 
             } else {
                 const errorData = await response.json();
                 console.error("Login failed:", errorData.message);
@@ -39,7 +38,7 @@ const Login: React.FC = () => {
 
     return (
         <PageContainer>
-            <LoginContainer>
+            <RegContainer>
                 <h1>Login</h1>
                 <form onSubmit={handleSubmit}>
                     <input 
@@ -54,13 +53,19 @@ const Login: React.FC = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
-                    <p>You are not registered? <a href="/register">Register</a></p>
-                    <button type="submit">Login</button>
+                    <input 
+                        type="text" 
+                        placeholder="Name" 
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                    
+                    <button type="submit">Register</button>
                 </form>
-            </LoginContainer>
+            </RegContainer>
             {loading && <Loading />}
         </PageContainer>
     );
 };
 
-export default Login;
+export default Register;

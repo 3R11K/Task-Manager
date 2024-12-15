@@ -1,0 +1,9 @@
+{'name': 'Frontend',
+ 'description': 'Frontend foda',
+  'dor': 'Noooo', 
+  'dod': 'DoD 1',
+  'size': 'G',
+  'assignee': {'id': 3, 'name': 'Rafaella'},
+  'reviewer': {'id': 2, 'name': 'Erik'},
+  'status': 'To Do',
+  'due_date': 'Sun, 01 Aug 2021 00:00:00 GMT', 'pr_link': '', 'storiy': 'Artefato 1'}
